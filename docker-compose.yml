@@ -1,0 +1,39 @@
+version: "3"
+services:
+  redis:
+    hostname: arquiredis
+    image: redis
+    command: redis-server --requirepass ilovearquivei
+    ports:
+      - "6379:6379"
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    links:
+      - fpm
+    volumes:
+      - ./:/var/www/laravel
+      - ./docker/nginx/vhost.conf:/etc/nginx/conf.d/laravel.conf
+    working_dir: /var/www/laravel
+  fpm:
+    build: ./docker/php-fpm
+    volumes:
+      - ./:/var/www/laravel
+    working_dir: /var/www/laravel
+
+  artisan-work:
+    restart: always
+    image: php:7.3-fpm
+    command: php /var/www/laravel/artisan queue:work --sleep=10 --daemon --tries=10 --timeout=60 --queue=sync
+    volumes:
+      - ./:/var/www/laravel
+
+  artisan-schedule:
+    restart: always
+    image: php:7.3-fpm
+    command: php /var/www/laravel/artisan schedule:run
+    volumes:
+      - ./:/var/www/laravel
+volumes:
+  data:
